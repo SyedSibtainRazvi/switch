@@ -74,6 +74,9 @@ struct ContextScope {
     repo_path: String,
     branch: String,
     commit_sha: String,
+    used_repo_fallback: bool,
+    used_branch_fallback: bool,
+    used_commit_fallback: bool,
 }
 
 fn main() -> Result<()> {
@@ -94,11 +97,13 @@ fn main() -> Result<()> {
             session,
         } => {
             let scope = detect_scope()?;
+            warn_scope_fallback(&scope);
             save_checkpoint(&conn, &scope, done, next, blockers, tests, files, session)?;
             println!("Checkpoint saved");
         }
         Commands::Resume { json } => {
             let scope = detect_scope()?;
+            warn_scope_fallback(&scope);
             if let Some(checkpoint) = latest_checkpoint_for_scope(&conn, &scope.repo_path, &scope.branch)? {
                 if json {
                     println!("{}", serde_json::to_string_pretty(&checkpoint)?);
@@ -111,6 +116,7 @@ fn main() -> Result<()> {
         }
         Commands::Log { limit } => {
             let scope = detect_scope()?;
+            warn_scope_fallback(&scope);
             let rows = list_checkpoints_for_scope(&conn, &scope.repo_path, &scope.branch, limit)?;
             if rows.is_empty() {
                 println!("No checkpoints found.");
@@ -281,8 +287,8 @@ fn print_checkpoint(c: &Checkpoint) {
 }
 
 fn print_checkpoint_compact(c: &Checkpoint) {
-    let done = c.done_text.clone().unwrap_or_else(|| "-".to_string());
-    let next = c.next_text.clone().unwrap_or_else(|| "-".to_string());
+    let done = truncate_for_log(c.done_text.as_deref().unwrap_or("-"), 96);
+    let next = truncate_for_log(c.next_text.as_deref().unwrap_or("-"), 96);
     println!(
         "#{} [{}] done={} | next={}",
         c.id,
@@ -312,15 +318,61 @@ fn current_dir_fallback() -> Result<String> {
 }
 
 fn detect_scope() -> Result<ContextScope> {
-    let repo_path = git_repo_root().unwrap_or(current_dir_fallback()?);
-    let branch = git_value(["rev-parse", "--abbrev-ref", "HEAD"]).unwrap_or_else(|| "unknown".to_string());
-    let commit_sha = git_value(["rev-parse", "HEAD"]).unwrap_or_else(|| "unknown".to_string());
+    let repo_from_git = git_repo_root();
+    let branch_from_git = git_value(["rev-parse", "--abbrev-ref", "HEAD"]);
+    let commit_from_git = git_value(["rev-parse", "HEAD"]);
+
+    let used_repo_fallback = repo_from_git.is_none();
+    let used_branch_fallback = branch_from_git.is_none();
+    let used_commit_fallback = commit_from_git.is_none();
+
+    let repo_path = repo_from_git.unwrap_or(current_dir_fallback()?);
+    let branch = branch_from_git.unwrap_or_else(|| "unknown".to_string());
+    let commit_sha = commit_from_git.unwrap_or_else(|| "unknown".to_string());
 
     Ok(ContextScope {
         repo_path,
         branch,
         commit_sha,
+        used_repo_fallback,
+        used_branch_fallback,
+        used_commit_fallback,
     })
+}
+
+fn warn_scope_fallback(scope: &ContextScope) {
+    let mut reasons = Vec::new();
+    if scope.used_repo_fallback {
+        reasons.push("repo_path from current directory");
+    }
+    if scope.used_branch_fallback {
+        reasons.push("branch set to 'unknown'");
+    }
+    if scope.used_commit_fallback {
+        reasons.push("commit set to 'unknown'");
+    }
+    if reasons.is_empty() {
+        return;
+    }
+
+    eprintln!(
+        "warning: using fallback git scope ({}) for repo='{}', branch='{}'",
+        reasons.join(", "),
+        scope.repo_path,
+        scope.branch
+    );
+}
+
+fn truncate_for_log(input: &str, max_chars: usize) -> String {
+    if input.chars().count() <= max_chars {
+        return input.to_string();
+    }
+    if max_chars <= 3 {
+        return ".".repeat(max_chars);
+    }
+
+    let prefix: String = input.chars().take(max_chars - 3).collect();
+    format!("{prefix}...")
 }
 
 fn git_repo_root() -> Option<String> {
@@ -365,6 +417,9 @@ mod tests {
             repo_path: "/tmp/switch-test-repo".to_string(),
             branch: "feature/scope-tests".to_string(),
             commit_sha: "abc123".to_string(),
+            used_repo_fallback: false,
+            used_branch_fallback: false,
+            used_commit_fallback: false,
         }
     }
 
@@ -390,14 +445,6 @@ mod tests {
     fn init_creates_schema_and_is_idempotent() {
         let db_path = temp_db_path();
         let conn1 = open_db(&db_path).expect("open db first time");
-        let index_exists: i64 = conn1
-            .query_row(
-                "SELECT COUNT(*) FROM sqlite_master WHERE type = 'index' AND name = 'idx_checkpoints_repo_branch_time'",
-                [],
-                |row| row.get(0),
-            )
-            .expect("query index");
-        assert_eq!(index_exists, 1);
         let order_index_exists: i64 = conn1
             .query_row(
                 "SELECT COUNT(*) FROM sqlite_master WHERE type = 'index' AND name = 'idx_checkpoints_repo_branch_time_id'",
@@ -406,6 +453,14 @@ mod tests {
             )
             .expect("query tie-break index");
         assert_eq!(order_index_exists, 1);
+        let old_index_exists: i64 = conn1
+            .query_row(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type = 'index' AND name = 'idx_checkpoints_repo_branch_time'",
+                [],
+                |row| row.get(0),
+            )
+            .expect("query old index");
+        assert_eq!(old_index_exists, 0);
 
         conn1
             .execute(
@@ -414,6 +469,13 @@ mod tests {
                 params!["/tmp/a", "main", "abc", "[]", 1_i64],
             )
             .expect("insert after first init");
+        conn1
+            .execute(
+                "CREATE INDEX IF NOT EXISTS idx_checkpoints_repo_branch_time
+                 ON checkpoints (repo_path, branch, created_at_ms DESC)",
+                [],
+            )
+            .expect("seed old index");
         drop(conn1);
 
         let conn2 = open_db(&db_path).expect("open db second time");
@@ -421,6 +483,14 @@ mod tests {
             .query_row("SELECT COUNT(*) FROM checkpoints", [], |row| row.get(0))
             .expect("count rows");
         assert_eq!(count, 1);
+        let old_index_exists_after_reopen: i64 = conn2
+            .query_row(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type = 'index' AND name = 'idx_checkpoints_repo_branch_time'",
+                [],
+                |row| row.get(0),
+            )
+            .expect("query old index after reopen");
+        assert_eq!(old_index_exists_after_reopen, 0);
     }
 
     #[test]
@@ -555,5 +625,12 @@ mod tests {
             .expect_err("expected parse error");
         let msg = format!("{err:#}");
         assert!(msg.contains("invalid files_json for checkpoint id"));
+    }
+
+    #[test]
+    fn truncate_for_log_applies_ellipsis() {
+        assert_eq!(truncate_for_log("short", 10), "short");
+        assert_eq!(truncate_for_log("abcdefghijklmnopqrstuvwxyz", 8), "abcde...");
+        assert_eq!(truncate_for_log("abcdef", 3), "...");
     }
 }

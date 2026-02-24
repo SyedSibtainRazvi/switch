@@ -16,7 +16,7 @@
 
 ## Index
 
-- `idx_checkpoints_repo_branch_time (repo_path, branch, created_at_ms DESC)`
+- `idx_checkpoints_repo_branch_time_id (repo_path, branch, created_at_ms DESC, id DESC)`
 
 ## Storage key
 

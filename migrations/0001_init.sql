@@ -12,8 +12,7 @@ CREATE TABLE IF NOT EXISTS checkpoints (
     created_at_ms INTEGER NOT NULL
 );
 
-CREATE INDEX IF NOT EXISTS idx_checkpoints_repo_branch_time
-ON checkpoints (repo_path, branch, created_at_ms DESC);
+DROP INDEX IF EXISTS idx_checkpoints_repo_branch_time;
 
 CREATE INDEX IF NOT EXISTS idx_checkpoints_repo_branch_time_id
 ON checkpoints (repo_path, branch, created_at_ms DESC, id DESC);
