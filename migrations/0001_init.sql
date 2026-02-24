@@ -14,3 +14,6 @@ CREATE TABLE IF NOT EXISTS checkpoints (
 
 CREATE INDEX IF NOT EXISTS idx_checkpoints_repo_branch_time
 ON checkpoints (repo_path, branch, created_at_ms DESC);
+
+CREATE INDEX IF NOT EXISTS idx_checkpoints_repo_branch_time_id
+ON checkpoints (repo_path, branch, created_at_ms DESC, id DESC);

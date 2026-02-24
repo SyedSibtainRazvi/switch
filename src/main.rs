@@ -200,7 +200,7 @@ fn latest_checkpoint_for_scope(
         "SELECT id, repo_path, branch, commit_sha, session_id, done_text, next_text, blockers_text, tests_text, files_json, created_at_ms
          FROM checkpoints
          WHERE repo_path = ?1 AND branch = ?2
-         ORDER BY created_at_ms DESC
+         ORDER BY created_at_ms DESC, id DESC
          LIMIT 1",
     )?;
 
@@ -222,7 +222,7 @@ fn list_checkpoints_for_scope(
         "SELECT id, repo_path, branch, commit_sha, session_id, done_text, next_text, blockers_text, tests_text, files_json, created_at_ms
          FROM checkpoints
          WHERE repo_path = ?1 AND branch = ?2
-         ORDER BY created_at_ms DESC
+         ORDER BY created_at_ms DESC, id DESC
          LIMIT ?3",
     )?;
 
@@ -345,8 +345,6 @@ fn git_value<const N: usize>(args: [&str; N]) -> Option<String> {
 mod tests {
     use super::*;
     use std::sync::atomic::{AtomicU64, Ordering};
-    use std::thread::sleep;
-    use std::time::Duration;
 
     static TEST_COUNTER: AtomicU64 = AtomicU64::new(0);
 
@@ -370,6 +368,24 @@ mod tests {
         }
     }
 
+    fn insert_checkpoint_raw(conn: &Connection, scope: &ContextScope, done: &str, created_at_ms: i64) -> i64 {
+        conn.execute(
+            "INSERT INTO checkpoints (
+                repo_path, branch, commit_sha, done_text, files_json, created_at_ms
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            params![
+                &scope.repo_path,
+                &scope.branch,
+                &scope.commit_sha,
+                done,
+                "[]",
+                created_at_ms
+            ],
+        )
+        .expect("insert raw checkpoint");
+        conn.last_insert_rowid()
+    }
+
     #[test]
     fn init_creates_schema_and_is_idempotent() {
         let db_path = temp_db_path();
@@ -382,6 +398,14 @@ mod tests {
             )
             .expect("query index");
         assert_eq!(index_exists, 1);
+        let order_index_exists: i64 = conn1
+            .query_row(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type = 'index' AND name = 'idx_checkpoints_repo_branch_time_id'",
+                [],
+                |row| row.get(0),
+            )
+            .expect("query tie-break index");
+        assert_eq!(order_index_exists, 1);
 
         conn1
             .execute(
@@ -449,7 +473,6 @@ mod tests {
         )
         .expect("first save");
 
-        sleep(Duration::from_millis(2));
         scope.commit_sha = "second".to_string();
         save_checkpoint(
             &conn,
@@ -467,6 +490,32 @@ mod tests {
             .expect("list logs");
         assert_eq!(logs.len(), 1);
         assert_eq!(logs[0].done_text.as_deref(), Some("second"));
+    }
+
+    #[test]
+    fn same_timestamp_uses_id_tiebreak_for_latest_and_log() {
+        let db_path = temp_db_path();
+        let conn = open_db(&db_path).expect("open db");
+        let scope = fixed_scope();
+        let ts = 123_456_789_i64;
+
+        let first_id = insert_checkpoint_raw(&conn, &scope, "first", ts);
+        let second_id = insert_checkpoint_raw(&conn, &scope, "second", ts);
+        assert!(second_id > first_id);
+
+        let latest = latest_checkpoint_for_scope(&conn, &scope.repo_path, &scope.branch)
+            .expect("query latest")
+            .expect("checkpoint exists");
+        assert_eq!(latest.id, second_id);
+        assert_eq!(latest.done_text.as_deref(), Some("second"));
+
+        let logs = list_checkpoints_for_scope(&conn, &scope.repo_path, &scope.branch, 2)
+            .expect("list logs");
+        assert_eq!(logs.len(), 2);
+        assert_eq!(logs[0].id, second_id);
+        assert_eq!(logs[0].done_text.as_deref(), Some("second"));
+        assert_eq!(logs[1].id, first_id);
+        assert_eq!(logs[1].done_text.as_deref(), Some("first"));
     }
 
     #[test]
