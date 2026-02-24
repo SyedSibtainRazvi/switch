@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-02-25
+
+- Fix `--db` help text to show correct default path
+- Bump version to match release tag
+
 ## [0.1.0] - 2026-02-25
 
 - Initial release

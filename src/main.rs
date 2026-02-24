@@ -24,7 +24,7 @@ use mcp::run_mcp_server;
     about = "git-scoped session state for AI coding agents"
 )]
 struct Cli {
-    /// Override sqlite db path (default: ~/.switch/switch.db)
+    /// Override sqlite db path (default: ~/.context0/context0.db)
     #[arg(long, global = true)]
     db: Option<PathBuf>,
 
