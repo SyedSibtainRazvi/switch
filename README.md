@@ -23,10 +23,6 @@ Works on macOS and Linux. Downloads the right prebuilt binary for your platform.
 
 **Windows:** download the `.zip` from [Releases](../../releases) and add the binary to your PATH.
 
-**Via cargo:**
-```bash
-cargo install context0
-```
 
 ## Commands
 
@@ -69,20 +65,9 @@ context0 init-rules
 
 All commands auto-detect `repo`, `branch`, and `commit` from git. Use `--repo` and `--branch` to override.
 
-## Web Docs
+## Docs
 
-A clickable documentation page is available at:
-
-- `webapp/index.html`
-
-Open it directly in your browser, or run a local server:
-
-```bash
-cd webapp
-python3 -m http.server 8080
-```
-
-Then visit `http://localhost:8080`.
+[https://syedsibtainrazvi.github.io/context0](https://syedsibtainrazvi.github.io/context0)
 
 ## MCP Server
 
