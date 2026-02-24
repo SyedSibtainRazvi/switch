@@ -42,11 +42,37 @@ switch resume --json
 # Show recent checkpoints
 switch log --limit 20
 
+# Delete all checkpoints for current repo + branch
+switch clear
+
+# Override repo/branch detection
+switch --repo /path/to/repo --branch feature/x resume
+
+# Generate shell completions
+switch completions bash >> ~/.bashrc
+switch completions zsh >> ~/.zshrc
+switch completions fish > ~/.config/fish/completions/switch.fish
+
 # Start the MCP stdio server
 switch mcp-server
 ```
 
-All commands auto-detect `repo`, `branch`, and `commit` from git. No configuration needed.
+All commands auto-detect `repo`, `branch`, and `commit` from git. Use `--repo` and `--branch` to override.
+
+## Web Docs
+
+A clickable documentation page is available at:
+
+- `webapp/index.html`
+
+Open it directly in your browser, or run a local server:
+
+```bash
+cd webapp
+python3 -m http.server 8080
+```
+
+Then visit `http://localhost:8080`.
 
 ## MCP Server
 
@@ -90,8 +116,6 @@ Add to `.cursor/mcp.json` (project) or `~/.cursor/mcp.json` (global):
 }
 ```
 
-Full input/output contracts: [`docs/MCP_CONTRACT.md`](docs/MCP_CONTRACT.md)
-
 ## How it works
 
 - Context is scoped by `git repo root + branch` — running `switch resume` on `feature/auth` always returns that branch's last checkpoint
@@ -104,6 +128,10 @@ Full input/output contracts: [`docs/MCP_CONTRACT.md`](docs/MCP_CONTRACT.md)
 |---|---|
 | Database | `~/.switch/switch.db` |
 | Override | `switch --db /path/to/custom.db <command>` |
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
