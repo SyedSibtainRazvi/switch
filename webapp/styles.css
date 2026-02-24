@@ -284,7 +284,8 @@ h3 {
   border: 3px solid #24527c;
   color: var(--code-ink);
   padding: 0.75rem;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
 }
 
 .code-wrap::before {
@@ -484,15 +485,101 @@ p code {
 
 @media (max-width: 560px) {
   body {
-    font-size: 1.22rem;
+    font-size: 1.15rem;
+  }
+
+  main,
+  .site-footer {
+    width: calc(100% - 1.2rem);
   }
 
   .panel {
-    padding: 0.9rem;
+    padding: 0.75rem;
+    box-shadow: 3px 3px 0 var(--frame);
   }
 
   .btn {
     width: 100%;
+  }
+
+  h1 {
+    font-size: clamp(0.9rem, 4vw, 1.2rem);
+    max-width: 100%;
+  }
+
+  h2 {
+    font-size: clamp(0.68rem, 3vw, 0.85rem);
+  }
+
+  h3 {
+    font-size: 0.6rem;
+  }
+
+  .hero {
+    padding: 1.8rem 0 1.2rem;
+  }
+
+  .kicker {
+    font-size: 0.42rem;
+  }
+
+  .lead {
+    font-size: 1.1rem;
+  }
+
+  pre {
+    padding-right: 0;
+    padding-bottom: 2.2rem;
+  }
+
+  .copy-btn {
+    top: auto;
+    bottom: 0.45rem;
+    right: 0.45rem;
+  }
+
+  .steps {
+    padding-left: 0.9rem;
+  }
+
+  .tab-controls {
+    display: flex;
+    flex-wrap: wrap;
+  }
+
+  p code {
+    word-break: break-word;
+  }
+
+  .grid article {
+    box-shadow: 2px 2px 0 rgba(29, 44, 97, 0.4);
+  }
+}
+
+@media (max-width: 380px) {
+  body {
+    font-size: 1.08rem;
+  }
+
+  .topbar {
+    padding: 0.65rem 0.75rem;
+  }
+
+  .brand {
+    font-size: 0.58rem;
+  }
+
+  .panel {
+    padding: 0.6rem;
+    box-shadow: 2px 2px 0 var(--frame);
+  }
+
+  .steps {
+    padding-left: 0.7rem;
+  }
+
+  pre {
+    font-size: 1rem;
   }
 }
 
