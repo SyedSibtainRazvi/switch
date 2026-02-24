@@ -1,4 +1,5 @@
 /target
+/benches
 *.db
 *.db-shm
 *.db-wal

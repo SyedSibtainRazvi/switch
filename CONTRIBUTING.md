@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for your interest in contributing to `switch`.
+Thanks for your interest in contributing to `context0`.
 
 ## Setup
 

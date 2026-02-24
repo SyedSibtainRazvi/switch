@@ -13,11 +13,11 @@ fn temp_path(prefix: &str) -> PathBuf {
 }
 
 fn run_switch(cwd: &Path, args: &[&str]) -> std::process::Output {
-    Command::new(env!("CARGO_BIN_EXE_switch"))
+    Command::new(env!("CARGO_BIN_EXE_context0"))
         .current_dir(cwd)
         .args(args)
         .output()
-        .expect("run switch")
+        .expect("run context0")
 }
 
 #[test]
@@ -27,9 +27,9 @@ fn cli_save_then_resume_json_round_trip() {
         return;
     }
 
-    let root = temp_path("switch-cli-test");
+    let root = temp_path("context0-cli-test");
     let repo = root.join("repo");
-    let db = root.join("switch.db");
+    let db = root.join("context0.db");
     fs::create_dir_all(&repo).expect("create temp repo");
 
     let init = Command::new("git")
@@ -59,7 +59,7 @@ fn cli_save_then_resume_json_round_trip() {
     );
     assert!(
         save.status.success(),
-        "switch save failed: {}",
+        "context0 save failed: {}",
         String::from_utf8_lossy(&save.stderr)
     );
 
@@ -69,7 +69,7 @@ fn cli_save_then_resume_json_round_trip() {
     );
     assert!(
         resume.status.success(),
-        "switch resume failed: {}",
+        "context0 resume failed: {}",
         String::from_utf8_lossy(&resume.stderr)
     );
 

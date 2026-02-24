@@ -151,18 +151,18 @@ mod tests {
     fn temp_db_path() -> PathBuf {
         let test_id = TEST_COUNTER.fetch_add(1, Ordering::Relaxed);
         let base = std::env::temp_dir().join(format!(
-            "switch-test-{}-{}-{}",
+            "context0-test-{}-{}-{}",
             std::process::id(),
             current_time_ms().expect("time"),
             test_id
         ));
         fs::create_dir_all(&base).expect("create temp dir");
-        base.join("switch.db")
+        base.join("context0.db")
     }
 
     fn fixed_scope() -> ContextScope {
         ContextScope {
-            repo_path: "/tmp/switch-test-repo".to_string(),
+            repo_path: "/tmp/context0-test-repo".to_string(),
             branch: "feature/scope-tests".to_string(),
             commit_sha: "abc123".to_string(),
             used_repo_fallback: false,

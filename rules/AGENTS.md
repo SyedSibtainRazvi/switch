@@ -1,6 +1,6 @@
-# switch context handoff (Codex)
+# context0 context handoff (Codex)
 
-This project uses **switch** for context handoff between AI coding tools. You have access to the switch MCP server; use its tools so the user can resume work in another tool (e.g. Cursor, Claude Code) without losing context.
+This project uses **context0** for context handoff between AI coding tools. You have access to the context0 MCP server; use its tools so the user can resume work in another tool (e.g. Cursor, Claude Code) without losing context.
 
 ## On session start
 
