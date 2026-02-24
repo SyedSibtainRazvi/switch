@@ -16,10 +16,17 @@ AI coding sessions have no memory between tools. If you start in Claude Code, mo
 ## Install
 
 ```bash
-cargo install context0
+curl -fsSL https://raw.githubusercontent.com/SyedSibtainRazvi/context0/main/install.sh | sh
 ```
 
-Or download a prebuilt binary from [Releases](../../releases).
+Works on macOS and Linux. Downloads the right prebuilt binary for your platform.
+
+**Windows:** download the `.zip` from [Releases](../../releases) and add the binary to your PATH.
+
+**Via cargo:**
+```bash
+cargo install context0
+```
 
 ## Commands
 
