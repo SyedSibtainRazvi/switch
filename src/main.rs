@@ -87,7 +87,12 @@ fn main() -> Result<()> {
     let db_path = cli.db.unwrap_or_else(default_db_path);
 
     if let Commands::Completions { shell } = cli.command {
-        clap_complete::generate(shell, &mut Cli::command(), "context0", &mut std::io::stdout());
+        clap_complete::generate(
+            shell,
+            &mut Cli::command(),
+            "context0",
+            &mut std::io::stdout(),
+        );
         return Ok(());
     }
 
@@ -177,7 +182,11 @@ fn init_rules() -> Result<()> {
 
     // Cursor — dedicated file, always write
     fs::create_dir_all(".cursor/rules")?;
-    write_rule_overwrite(Path::new(".cursor/rules/context0.mdc"), CURSOR_RULE, "Cursor")?;
+    write_rule_overwrite(
+        Path::new(".cursor/rules/context0.mdc"),
+        CURSOR_RULE,
+        "Cursor",
+    )?;
 
     // Codex — append to AGENTS.md at project root
     write_rule_append(Path::new("AGENTS.md"), AGENTS_RULE, "Codex")?;
