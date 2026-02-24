@@ -69,6 +69,13 @@ struct Checkpoint {
     created_at_ms: i64,
 }
 
+#[derive(Debug, Clone)]
+struct ContextScope {
+    repo_path: String,
+    branch: String,
+    commit_sha: String,
+}
+
 fn main() -> Result<()> {
     let cli = Cli::parse();
     let db_path = cli.db.unwrap_or_else(default_db_path);
@@ -86,11 +93,13 @@ fn main() -> Result<()> {
             files,
             session,
         } => {
-            save_checkpoint(&conn, done, next, blockers, tests, files, session)?;
+            let scope = detect_scope()?;
+            save_checkpoint(&conn, &scope, done, next, blockers, tests, files, session)?;
             println!("Checkpoint saved");
         }
         Commands::Resume { json } => {
-            if let Some(checkpoint) = latest_checkpoint(&conn)? {
+            let scope = detect_scope()?;
+            if let Some(checkpoint) = latest_checkpoint_for_scope(&conn, &scope.repo_path, &scope.branch)? {
                 if json {
                     println!("{}", serde_json::to_string_pretty(&checkpoint)?);
                 } else {
@@ -101,7 +110,8 @@ fn main() -> Result<()> {
             }
         }
         Commands::Log { limit } => {
-            let rows = list_checkpoints(&conn, limit)?;
+            let scope = detect_scope()?;
+            let rows = list_checkpoints_for_scope(&conn, &scope.repo_path, &scope.branch, limit)?;
             if rows.is_empty() {
                 println!("No checkpoints found.");
             } else {
@@ -137,6 +147,7 @@ fn open_db(path: &Path) -> Result<Connection> {
 
 fn save_checkpoint(
     conn: &Connection,
+    scope: &ContextScope,
     done: Option<String>,
     next: Option<String>,
     blockers: Option<String>,
@@ -155,9 +166,6 @@ fn save_checkpoint(
         ));
     }
 
-    let repo_path = git_repo_root().unwrap_or(current_dir_fallback()?);
-    let branch = git_value(["rev-parse", "--abbrev-ref", "HEAD"]).unwrap_or_else(|| "unknown".to_string());
-    let commit_sha = git_value(["rev-parse", "HEAD"]).unwrap_or_else(|| "unknown".to_string());
     let created_at_ms = current_time_ms()?;
     let files_json = serde_json::to_string(&files)?;
 
@@ -167,9 +175,9 @@ fn save_checkpoint(
             done_text, next_text, blockers_text, tests_text, files_json, created_at_ms
         ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
         params![
-            repo_path,
-            branch,
-            commit_sha,
+            &scope.repo_path,
+            &scope.branch,
+            &scope.commit_sha,
             session_id,
             done,
             next,
@@ -183,9 +191,11 @@ fn save_checkpoint(
     Ok(())
 }
 
-fn latest_checkpoint(conn: &Connection) -> Result<Option<Checkpoint>> {
-    let repo_path = git_repo_root().unwrap_or(current_dir_fallback()?);
-    let branch = git_value(["rev-parse", "--abbrev-ref", "HEAD"]).unwrap_or_else(|| "unknown".to_string());
+fn latest_checkpoint_for_scope(
+    conn: &Connection,
+    repo_path: &str,
+    branch: &str,
+) -> Result<Option<Checkpoint>> {
     let mut stmt = conn.prepare(
         "SELECT id, repo_path, branch, commit_sha, session_id, done_text, next_text, blockers_text, tests_text, files_json, created_at_ms
          FROM checkpoints
@@ -202,9 +212,12 @@ fn latest_checkpoint(conn: &Connection) -> Result<Option<Checkpoint>> {
     }
 }
 
-fn list_checkpoints(conn: &Connection, limit: u32) -> Result<Vec<Checkpoint>> {
-    let repo_path = git_repo_root().unwrap_or(current_dir_fallback()?);
-    let branch = git_value(["rev-parse", "--abbrev-ref", "HEAD"]).unwrap_or_else(|| "unknown".to_string());
+fn list_checkpoints_for_scope(
+    conn: &Connection,
+    repo_path: &str,
+    branch: &str,
+    limit: u32,
+) -> Result<Vec<Checkpoint>> {
     let mut stmt = conn.prepare(
         "SELECT id, repo_path, branch, commit_sha, session_id, done_text, next_text, blockers_text, tests_text, files_json, created_at_ms
          FROM checkpoints
@@ -222,11 +235,13 @@ fn list_checkpoints(conn: &Connection, limit: u32) -> Result<Vec<Checkpoint>> {
 }
 
 fn row_to_checkpoint(row: &rusqlite::Row<'_>) -> Result<Checkpoint> {
+    let id: i64 = row.get(0)?;
     let files_json: String = row.get(9)?;
-    let files: Vec<String> = serde_json::from_str(&files_json).unwrap_or_default();
+    let files: Vec<String> = serde_json::from_str(&files_json)
+        .with_context(|| format!("invalid files_json for checkpoint id {}", id))?;
 
     Ok(Checkpoint {
-        id: row.get(0)?,
+        id,
         repo_path: row.get(1)?,
         branch: row.get(2)?,
         commit_sha: row.get(3)?,
@@ -296,6 +311,18 @@ fn current_dir_fallback() -> Result<String> {
     Ok(cwd.to_string_lossy().to_string())
 }
 
+fn detect_scope() -> Result<ContextScope> {
+    let repo_path = git_repo_root().unwrap_or(current_dir_fallback()?);
+    let branch = git_value(["rev-parse", "--abbrev-ref", "HEAD"]).unwrap_or_else(|| "unknown".to_string());
+    let commit_sha = git_value(["rev-parse", "HEAD"]).unwrap_or_else(|| "unknown".to_string());
+
+    Ok(ContextScope {
+        repo_path,
+        branch,
+        commit_sha,
+    })
+}
+
 fn git_repo_root() -> Option<String> {
     git_value(["rev-parse", "--show-toplevel"])
 }
@@ -311,5 +338,173 @@ fn git_value<const N: usize>(args: [&str; N]) -> Option<String> {
         None
     } else {
         Some(trimmed)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::atomic::{AtomicU64, Ordering};
+    use std::thread::sleep;
+    use std::time::Duration;
+
+    static TEST_COUNTER: AtomicU64 = AtomicU64::new(0);
+
+    fn temp_db_path() -> PathBuf {
+        let test_id = TEST_COUNTER.fetch_add(1, Ordering::Relaxed);
+        let base = std::env::temp_dir().join(format!(
+            "switch-test-{}-{}-{}",
+            std::process::id(),
+            current_time_ms().expect("time"),
+            test_id
+        ));
+        fs::create_dir_all(&base).expect("create temp dir");
+        base.join("switch.db")
+    }
+
+    fn fixed_scope() -> ContextScope {
+        ContextScope {
+            repo_path: "/tmp/switch-test-repo".to_string(),
+            branch: "feature/scope-tests".to_string(),
+            commit_sha: "abc123".to_string(),
+        }
+    }
+
+    #[test]
+    fn init_creates_schema_and_is_idempotent() {
+        let db_path = temp_db_path();
+        let conn1 = open_db(&db_path).expect("open db first time");
+        let index_exists: i64 = conn1
+            .query_row(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type = 'index' AND name = 'idx_checkpoints_repo_branch_time'",
+                [],
+                |row| row.get(0),
+            )
+            .expect("query index");
+        assert_eq!(index_exists, 1);
+
+        conn1
+            .execute(
+                "INSERT INTO checkpoints (repo_path, branch, commit_sha, files_json, created_at_ms)
+                 VALUES (?1, ?2, ?3, ?4, ?5)",
+                params!["/tmp/a", "main", "abc", "[]", 1_i64],
+            )
+            .expect("insert after first init");
+        drop(conn1);
+
+        let conn2 = open_db(&db_path).expect("open db second time");
+        let count: i64 = conn2
+            .query_row("SELECT COUNT(*) FROM checkpoints", [], |row| row.get(0))
+            .expect("count rows");
+        assert_eq!(count, 1);
+    }
+
+    #[test]
+    fn save_and_resume_round_trip() {
+        let db_path = temp_db_path();
+        let conn = open_db(&db_path).expect("open db");
+        let scope = fixed_scope();
+
+        save_checkpoint(
+            &conn,
+            &scope,
+            Some("implemented parser".to_string()),
+            Some("add tests".to_string()),
+            Some("none".to_string()),
+            Some("not run".to_string()),
+            vec!["src/main.rs".to_string()],
+            Some("claude-session".to_string()),
+        )
+        .expect("save checkpoint");
+
+        let latest = latest_checkpoint_for_scope(&conn, &scope.repo_path, &scope.branch)
+            .expect("query latest")
+            .expect("checkpoint exists");
+
+        assert_eq!(latest.repo_path.as_str(), scope.repo_path.as_str());
+        assert_eq!(latest.branch.as_str(), scope.branch.as_str());
+        assert_eq!(latest.commit_sha.as_str(), scope.commit_sha.as_str());
+        assert_eq!(latest.done_text.as_deref(), Some("implemented parser"));
+        assert_eq!(latest.next_text.as_deref(), Some("add tests"));
+        assert_eq!(latest.files, vec!["src/main.rs"]);
+        assert_eq!(latest.session_id.as_deref(), Some("claude-session"));
+    }
+
+    #[test]
+    fn log_returns_desc_order_and_limit() {
+        let db_path = temp_db_path();
+        let conn = open_db(&db_path).expect("open db");
+        let mut scope = fixed_scope();
+
+        scope.commit_sha = "first".to_string();
+        save_checkpoint(
+            &conn,
+            &scope,
+            Some("first".to_string()),
+            Some("first-next".to_string()),
+            None,
+            None,
+            vec![],
+            None,
+        )
+        .expect("first save");
+
+        sleep(Duration::from_millis(2));
+        scope.commit_sha = "second".to_string();
+        save_checkpoint(
+            &conn,
+            &scope,
+            Some("second".to_string()),
+            Some("second-next".to_string()),
+            None,
+            None,
+            vec![],
+            None,
+        )
+        .expect("second save");
+
+        let logs = list_checkpoints_for_scope(&conn, &scope.repo_path, &scope.branch, 1)
+            .expect("list logs");
+        assert_eq!(logs.len(), 1);
+        assert_eq!(logs[0].done_text.as_deref(), Some("second"));
+    }
+
+    #[test]
+    fn save_requires_at_least_one_payload_field() {
+        let db_path = temp_db_path();
+        let conn = open_db(&db_path).expect("open db");
+        let scope = fixed_scope();
+
+        let err = save_checkpoint(&conn, &scope, None, None, None, None, vec![], None)
+            .expect_err("save should fail");
+        let msg = format!("{err:#}");
+        assert!(msg.contains("at least one of --done, --next, --blockers, --tests, or --files is required"));
+    }
+
+    #[test]
+    fn invalid_files_json_returns_error() {
+        let db_path = temp_db_path();
+        let conn = open_db(&db_path).expect("open db");
+        let scope = fixed_scope();
+
+        conn.execute(
+            "INSERT INTO checkpoints (
+                repo_path, branch, commit_sha, done_text, files_json, created_at_ms
+            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            params![
+                &scope.repo_path,
+                &scope.branch,
+                &scope.commit_sha,
+                "bad row",
+                "{not-valid-json",
+                current_time_ms().expect("time")
+            ],
+        )
+        .expect("insert malformed row");
+
+        let err = latest_checkpoint_for_scope(&conn, &scope.repo_path, &scope.branch)
+            .expect_err("expected parse error");
+        let msg = format!("{err:#}");
+        assert!(msg.contains("invalid files_json for checkpoint id"));
     }
 }
