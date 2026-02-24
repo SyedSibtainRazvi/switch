@@ -6,7 +6,7 @@
     <title>context0 docs</title>
     <meta
       name="description"
-      content="context0 is local-first context handoff for AI coding tools. Learn what it is and how to use it."
+      content="context0 — git-scoped session state for AI coding agents. Save where you left off. Resume in any AI tool."
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -38,11 +38,10 @@
 
     <main id="top">
       <section class="hero reveal">
-        <p class="kicker">Local-first context handoff</p>
-        <h1>Keep coding context when you switch tools.</h1>
+        <p class="kicker">git-scoped session state</p>
+        <h1>Your AI context follows your git branch.</h1>
         <p class="lead">
-          <code>context0</code> saves a checkpoint for your current repo and branch, then resumes it in Claude
-          Code, Cursor, Codex, or plain terminal.
+          Save where you left off. Resume in any AI tool — Claude Code, Cursor, Codex — on the same repo and branch, with one command.
         </p>
         <div class="hero-actions">
           <a class="btn btn-primary" href="#quickstart">Start in 2 minutes</a>
@@ -53,8 +52,8 @@
       <section id="what" class="panel reveal">
         <h2>What is context0?</h2>
         <p>
-          AI coding sessions do not share memory across tools. <code>context0</code> stores compact checkpoints in
-          local SQLite so your "what I did" and "what to do next" follow your git branch.
+          AI coding sessions have no memory between tools. <code>context0</code> stores compact checkpoints in
+          local SQLite, scoped to your git repo and branch — so your task state follows your code, not your tool.
         </p>
         <div class="grid three">
           <article>

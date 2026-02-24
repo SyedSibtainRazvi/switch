@@ -1,8 +1,8 @@
 # context0
 
-Local-first context handoff for AI coding agents.
+git-scoped session state for AI coding agents.
 
-Save a checkpoint when you stop. Resume it in any tool — Claude Code, Cursor, Codex — on the same repo and branch, with one command.
+Save where you left off. Resume in any AI tool — context follows your git branch.
 
 ```
 context0 save --done "wired auth middleware" --next "fix integration tests"
