@@ -3,10 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>switch docs</title>
+    <title>context0 docs</title>
     <meta
       name="description"
-      content="switch is local-first context handoff for AI coding tools. Learn what it is and how to use it."
+      content="context0 is local-first context handoff for AI coding tools. Learn what it is and how to use it."
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -22,8 +22,8 @@
 
     <header class="topbar">
       <a class="brand" href="#top">
-        <span class="brand-mark">S</span>
-        <span>switch</span>
+        <span class="brand-mark">C</span>
+        <span>context0</span>
       </a>
       <button class="menu-toggle" aria-label="Open navigation" aria-expanded="false">
         Menu
@@ -41,7 +41,7 @@
         <p class="kicker">Local-first context handoff</p>
         <h1>Keep coding context when you switch tools.</h1>
         <p class="lead">
-          <code>switch</code> saves a checkpoint for your current repo and branch, then resumes it in Claude
+          <code>context0</code> saves a checkpoint for your current repo and branch, then resumes it in Claude
           Code, Cursor, Codex, or plain terminal.
         </p>
         <div class="hero-actions">
@@ -51,9 +51,9 @@
       </section>
 
       <section id="what" class="panel reveal">
-        <h2>What is switch?</h2>
+        <h2>What is context0?</h2>
         <p>
-          AI coding sessions do not share memory across tools. <code>switch</code> stores compact checkpoints in
+          AI coding sessions do not share memory across tools. <code>context0</code> stores compact checkpoints in
           local SQLite so your "what I did" and "what to do next" follow your git branch.
         </p>
         <div class="grid three">
@@ -63,7 +63,7 @@
           </article>
           <article>
             <h3>Local</h3>
-            <p>No cloud dependency. Data is saved at <code>~/.switch/switch.db</code> by default.</p>
+            <p>No cloud dependency. Data is saved at <code>~/.context0/context0.db</code> by default.</p>
           </article>
           <article>
             <h3>Fast</h3>
@@ -75,19 +75,23 @@
       <section id="quickstart" class="panel reveal">
         <h2>Quickstart</h2>
         <p>
-          Best flow: install switch, add MCP + a rule file, then let the AI save and resume context. Say &ldquo;save context&rdquo; or &ldquo;I&rsquo;m switching&rdquo; when you change tools.
+          Best flow: install context0, add MCP + a rule file, then let the AI save and resume context. Say &ldquo;save context&rdquo; or &ldquo;I&rsquo;m switching&rdquo; when you change tools.
         </p>
         <ol class="steps">
           <li>
             <h3>Install</h3>
             <div class="code-wrap">
-              <pre><code id="install-cmd">cargo install --path .</code></pre>
+              <pre><code id="install-cmd">cargo install context0</code></pre>
               <button class="copy-btn" data-copy-target="install-cmd">Copy</button>
             </div>
           </li>
           <li>
-            <h3>Add MCP and a rule file</h3>
-            <p>Configure <code>switch mcp-server</code> in your tool (see MCP setup below). Then add the rule so the agent uses switch: Cursor → <code>rules/switch.mdc</code> into <code>.cursor/rules/</code>; Claude Code → <code>rules/CLAUDE.md</code>; Codex → <code>rules/AGENTS.md</code>.</p>
+            <h3>Add MCP and rule files</h3>
+            <div class="code-wrap">
+              <pre><code id="init-rules-cmd">context0 init-rules</code></pre>
+              <button class="copy-btn" data-copy-target="init-rules-cmd">Copy</button>
+            </div>
+            <p>Then configure <code>context0 mcp-server</code> in your tool (see MCP setup below).</p>
           </li>
           <li>
             <h3>Use it</h3>
@@ -96,10 +100,10 @@
           <li>
             <h3>CLI fallback</h3>
             <div class="code-wrap">
-              <pre><code id="save-cmd">switch save --done "wired auth middleware" --next "fix integration tests"</code></pre>
+              <pre><code id="save-cmd">context0 save --done "wired auth middleware" --next "fix integration tests"</code></pre>
               <button class="copy-btn" data-copy-target="save-cmd">Copy</button>
             </div>
-            <p class="hint">Resume: <code>switch resume</code> or <code>switch resume --json</code></p>
+            <p class="hint">Resume: <code>context0 resume</code> or <code>context0 resume --json</code></p>
           </li>
         </ol>
       </section>
@@ -111,7 +115,7 @@
             <h3>save</h3>
             <p>Write a checkpoint for the current repo + branch.</p>
             <div class="code-wrap compact">
-              <pre><code id="cmd-save">switch save \
+              <pre><code id="cmd-save">context0 save \
   --done "implemented OAuth flow" \
   --next "add refresh token logic" \
   --blockers "waiting on API key" \
@@ -124,8 +128,8 @@
             <h3>resume</h3>
             <p>Print the latest checkpoint for the current repo + branch.</p>
             <div class="code-wrap compact">
-              <pre><code id="cmd-resume">switch resume
-switch resume --json</code></pre>
+              <pre><code id="cmd-resume">context0 resume
+context0 resume --json</code></pre>
               <button class="copy-btn" data-copy-target="cmd-resume">Copy</button>
             </div>
           </article>
@@ -133,7 +137,7 @@ switch resume --json</code></pre>
             <h3>log</h3>
             <p>Show recent checkpoints in reverse chronological order.</p>
             <div class="code-wrap compact">
-              <pre><code id="cmd-log">switch log --limit 20</code></pre>
+              <pre><code id="cmd-log">context0 log --limit 20</code></pre>
               <button class="copy-btn" data-copy-target="cmd-log">Copy</button>
             </div>
           </article>
@@ -141,8 +145,24 @@ switch resume --json</code></pre>
             <h3>mcp-server</h3>
             <p>Run MCP over stdio so tools can read/write context directly.</p>
             <div class="code-wrap compact">
-              <pre><code id="cmd-mcp">switch mcp-server</code></pre>
+              <pre><code id="cmd-mcp">context0 mcp-server</code></pre>
               <button class="copy-btn" data-copy-target="cmd-mcp">Copy</button>
+            </div>
+          </article>
+          <article>
+            <h3>init-rules</h3>
+            <p>Install agent rule files for Claude Code, Cursor, and Codex. Run once per project.</p>
+            <div class="code-wrap compact">
+              <pre><code id="cmd-init-rules">context0 init-rules</code></pre>
+              <button class="copy-btn" data-copy-target="cmd-init-rules">Copy</button>
+            </div>
+          </article>
+          <article>
+            <h3>clear</h3>
+            <p>Delete all checkpoints for the current repo + branch.</p>
+            <div class="code-wrap compact">
+              <pre><code id="cmd-clear">context0 clear</code></pre>
+              <button class="copy-btn" data-copy-target="cmd-clear">Copy</button>
             </div>
           </article>
         </div>
@@ -151,7 +171,7 @@ switch resume --json</code></pre>
       <section id="mcp" class="panel reveal">
         <h2>MCP setup</h2>
         <p>
-          Add <code>switch mcp-server</code> to your editor/tool MCP config and use tools:
+          Add <code>context0 mcp-server</code> to your editor/tool MCP config and use tools:
           <code>get_context</code>, <code>save_context</code>, and <code>list_context</code>.
         </p>
 
@@ -164,8 +184,8 @@ switch resume --json</code></pre>
           <div class="code-wrap">
             <pre><code id="claude-config">{
   "mcpServers": {
-    "switch": {
-      "command": "switch",
+    "context0": {
+      "command": "context0",
       "args": ["mcp-server"]
     }
   }
@@ -179,8 +199,8 @@ switch resume --json</code></pre>
           <div class="code-wrap">
             <pre><code id="cursor-config">{
   "mcpServers": {
-    "switch": {
-      "command": "switch",
+    "context0": {
+      "command": "context0",
       "args": ["mcp-server"]
     }
   }
@@ -196,12 +216,12 @@ switch resume --json</code></pre>
         <div class="grid two">
           <article>
             <h3>Default database</h3>
-            <p><code>~/.switch/switch.db</code></p>
+            <p><code>~/.context0/context0.db</code></p>
           </article>
           <article>
             <h3>Custom database</h3>
             <div class="code-wrap compact">
-              <pre><code id="db-cmd">switch --db /path/to/custom.db resume</code></pre>
+              <pre><code id="db-cmd">context0 --db /path/to/custom.db resume</code></pre>
               <button class="copy-btn" data-copy-target="db-cmd">Copy</button>
             </div>
           </article>
@@ -211,10 +231,7 @@ switch resume --json</code></pre>
 
     <footer class="site-footer reveal">
       <p>
-        Need the protocol-level details? See
-        <a href="../docs/MCP_CONTRACT.md">MCP_CONTRACT.md</a>,
-        <a href="../docs/SCHEMA.md">SCHEMA.md</a>, and
-        <a href="../docs/SPEC.md">SPEC.md</a>.
+        <a href="https://github.com/SyedSibtainRazvi/context0">GitHub</a>
       </p>
     </footer>
 
