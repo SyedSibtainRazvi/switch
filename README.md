@@ -14,9 +14,9 @@ AI coding sessions have no memory between tools. If you start in Claude Code, mo
 curl -fsSL https://raw.githubusercontent.com/SyedSibtainRazvi/context0/main/install.sh | sh
 ```
 
-Works on macOS and Linux. Downloads the right prebuilt binary for your platform.
+Works on macOS (Intel and Apple Silicon) and Linux x86_64. Downloads the right prebuilt binary for your platform.
 
-**Windows:** download the `.zip` from [Releases](../../releases) and add the binary to your PATH.
+**Windows:** download the `.zip` from [Releases](https://github.com/SyedSibtainRazvi/context0/releases) and add the binary to your PATH.
 
 
 ## Commands
@@ -140,6 +140,7 @@ Add to `.cursor/mcp.json` (project) or `~/.cursor/mcp.json` (global):
 |---|---|
 | Database | `~/.context0/context0.db` |
 | Override | `context0 --db /path/to/custom.db <command>` |
+| SQLite busy timeout | `30000` ms (`CONTEXT0_BUSY_TIMEOUT_MS`) |
 
 ## Contributing
 

@@ -31,9 +31,11 @@ pub fn detect_scope(
         },
     };
 
-    let commit_from_git = match repo_override {
-        Some(r) => git_value_in(r, ["rev-parse", "HEAD"]),
-        None => git_value(["rev-parse", "HEAD"]),
+    let commit_from_git = match (repo_override, branch_override) {
+        (Some(r), Some(b)) => git_value_in(r, ["rev-parse", b]),
+        (None, Some(b)) => git_value(["rev-parse", b]),
+        (Some(r), None) => git_value_in(r, ["rev-parse", "HEAD"]),
+        (None, None) => git_value(["rev-parse", "HEAD"]),
     };
     let used_commit_fallback = commit_from_git.is_none();
     let commit_sha = commit_from_git.unwrap_or_else(|| "unknown".to_string());
@@ -90,7 +92,12 @@ fn git_value<const N: usize>(args: [&str; N]) -> Option<String> {
 }
 
 fn git_value_in<const N: usize>(dir: &str, args: [&str; N]) -> Option<String> {
-    let output = Command::new("git").arg("-C").arg(dir).args(args).output().ok()?;
+    let output = Command::new("git")
+        .arg("-C")
+        .arg(dir)
+        .args(args)
+        .output()
+        .ok()?;
     if !output.status.success() {
         return None;
     }

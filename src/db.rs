@@ -2,10 +2,12 @@ use anyhow::{anyhow, Context, Result};
 use rusqlite::{params, Connection};
 use std::fs;
 use std::path::Path;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use crate::checkpoint::{Checkpoint, CheckpointPayload};
 use crate::git::ContextScope;
+
+const DEFAULT_BUSY_TIMEOUT_MS: u64 = 30_000;
 
 pub fn open_db(path: &Path) -> Result<Connection> {
     if let Some(parent) = path.parent() {
@@ -16,9 +18,17 @@ pub fn open_db(path: &Path) -> Result<Connection> {
     let conn = Connection::open(path)
         .with_context(|| format!("failed to open sqlite db at {}", path.display()))?;
     conn.pragma_update(None, "journal_mode", "WAL")?;
-    conn.pragma_update(None, "busy_timeout", 5000)?;
+    conn.busy_timeout(resolve_busy_timeout())?;
     conn.execute_batch(include_str!("../migrations/0001_init.sql"))?;
     Ok(conn)
+}
+
+fn resolve_busy_timeout() -> Duration {
+    let timeout_ms = std::env::var("CONTEXT0_BUSY_TIMEOUT_MS")
+        .ok()
+        .and_then(|raw| raw.parse::<u64>().ok())
+        .unwrap_or(DEFAULT_BUSY_TIMEOUT_MS);
+    Duration::from_millis(timeout_ms)
 }
 
 pub fn save_checkpoint(
