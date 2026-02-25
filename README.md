@@ -33,7 +33,7 @@ context0 save \
   --next "add refresh token logic" \
   --blockers "waiting on API key from infra" \
   --tests "cargo test auth::" \
-  --files src/auth.rs src/middleware.rs \
+  --files src/auth.rs --files src/middleware.rs \
   --session my-session
 
 # Resume latest checkpoint (human-readable)

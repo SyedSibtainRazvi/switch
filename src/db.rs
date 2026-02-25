@@ -16,6 +16,7 @@ pub fn open_db(path: &Path) -> Result<Connection> {
     let conn = Connection::open(path)
         .with_context(|| format!("failed to open sqlite db at {}", path.display()))?;
     conn.pragma_update(None, "journal_mode", "WAL")?;
+    conn.pragma_update(None, "busy_timeout", 5000)?;
     conn.execute_batch(include_str!("../migrations/0001_init.sql"))?;
     Ok(conn)
 }

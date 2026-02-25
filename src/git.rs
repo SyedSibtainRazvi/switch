@@ -31,7 +31,10 @@ pub fn detect_scope(
         },
     };
 
-    let commit_from_git = git_value(["rev-parse", "HEAD"]);
+    let commit_from_git = match repo_override {
+        Some(r) => git_value_in(r, ["rev-parse", "HEAD"]),
+        None => git_value(["rev-parse", "HEAD"]),
+    };
     let used_commit_fallback = commit_from_git.is_none();
     let commit_sha = commit_from_git.unwrap_or_else(|| "unknown".to_string());
 
@@ -74,6 +77,20 @@ fn git_repo_root() -> Option<String> {
 
 fn git_value<const N: usize>(args: [&str; N]) -> Option<String> {
     let output = Command::new("git").args(args).output().ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    let s = String::from_utf8(output.stdout).ok()?;
+    let trimmed = s.trim().to_string();
+    if trimmed.is_empty() {
+        None
+    } else {
+        Some(trimmed)
+    }
+}
+
+fn git_value_in<const N: usize>(dir: &str, args: [&str; N]) -> Option<String> {
+    let output = Command::new("git").arg("-C").arg(dir).args(args).output().ok()?;
     if !output.status.success() {
         return None;
     }
