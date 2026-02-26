@@ -100,28 +100,44 @@ Idempotent: safe to re-run, won't duplicate.
 
 ### Claude Code
 
-Add to `~/.claude/settings.json`:
+Run once to register:
+
+```bash
+claude mcp add context0 context0 mcp-server
+```
+
+### Cursor
+
+Cursor doesn't inherit your shell PATH, so use the full binary path. First find it:
+
+```bash
+which context0
+```
+
+Then add to `~/.cursor/mcp.json` (global) or `.cursor/mcp.json` (project), replacing the path with the output above:
 
 ```json
 {
   "mcpServers": {
     "context0": {
-      "command": "context0",
+      "command": "/Users/your-username/.local/bin/context0",
       "args": ["mcp-server"]
     }
   }
 }
 ```
 
-### Cursor
+Restart Cursor after editing the file.
 
-Add to `.cursor/mcp.json` (project) or `~/.cursor/mcp.json` (global):
+### Codex
+
+Add to `~/.codex/config.json`, using the full path from `which context0`:
 
 ```json
 {
   "mcpServers": {
     "context0": {
-      "command": "context0",
+      "command": "/Users/your-username/.local/bin/context0",
       "args": ["mcp-server"]
     }
   }

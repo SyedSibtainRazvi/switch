@@ -95,19 +95,25 @@
             <p class="hint">Writes <code>CLAUDE.md</code>, <code>.cursor/rules/context0.mdc</code>, and <code>AGENTS.md</code> into the current project.</p>
           </li>
           <li>
-            <strong>Add MCP config</strong> to your tool&rsquo;s settings file
+            <strong>Add MCP config</strong> to your tool
             <div class="code-wrap">
-              <pre><code id="mcp-quick-config">{
+              <pre><code id="mcp-quick-config"># Claude Code (run once in terminal)
+claude mcp add context0 context0 mcp-server
+
+# Cursor / Codex — use full path (editors don't inherit PATH)
+# First run: which context0
+# Then add to ~/.cursor/mcp.json or ~/.codex/config.json:
+{
   "mcpServers": {
     "context0": {
-      "command": "context0",
+      "command": "/Users/your-username/.local/bin/context0",
       "args": ["mcp-server"]
     }
   }
 }</code></pre>
               <button class="copy-btn" data-copy-target="mcp-quick-config">Copy</button>
             </div>
-            <p class="hint">Claude Code: <code>~/.claude/settings.json</code> &nbsp;&middot;&nbsp; Cursor: <code>~/.cursor/mcp.json</code> &nbsp;&middot;&nbsp; Codex: <code>~/.codex/config.json</code></p>
+            <p class="hint">See the <a href="#mcp">MCP setup</a> section below for per-tool details.</p>
           </li>
         </ol>
 
@@ -205,17 +211,10 @@ context0 completions fish > ~/.config/fish/completions/context0.fish</code></pre
 
         <div class="tab-panel active" data-panel="claude">
           <div class="code-wrap">
-            <pre><code id="claude-config">{
-  "mcpServers": {
-    "context0": {
-      "command": "context0",
-      "args": ["mcp-server"]
-    }
-  }
-}</code></pre>
+            <pre><code id="claude-config">claude mcp add context0 context0 mcp-server</code></pre>
             <button class="copy-btn" data-copy-target="claude-config">Copy</button>
           </div>
-          <p class="hint">File: <code>~/.claude/settings.json</code></p>
+          <p class="hint">Run once in any terminal. Claude Code resolves the binary from your PATH automatically.</p>
         </div>
 
         <div class="tab-panel" data-panel="cursor">
@@ -223,14 +222,18 @@ context0 completions fish > ~/.config/fish/completions/context0.fish</code></pre
             <pre><code id="cursor-config">{
   "mcpServers": {
     "context0": {
-      "command": "context0",
+      "command": "/Users/your-username/.local/bin/context0",
       "args": ["mcp-server"]
     }
   }
 }</code></pre>
             <button class="copy-btn" data-copy-target="cursor-config">Copy</button>
           </div>
-          <p class="hint">File: <code>.cursor/mcp.json</code> (project) or <code>~/.cursor/mcp.json</code> (global)</p>
+          <p class="hint">
+            File: <code>~/.cursor/mcp.json</code> (global) or <code>.cursor/mcp.json</code> (project).
+            Cursor doesn&rsquo;t inherit your shell PATH &mdash; use the full binary path.
+            Run <code>which context0</code> to find yours, then restart Cursor.
+          </p>
         </div>
 
         <div class="tab-panel" data-panel="codex">
@@ -238,14 +241,14 @@ context0 completions fish > ~/.config/fish/completions/context0.fish</code></pre
             <pre><code id="codex-config">{
   "mcpServers": {
     "context0": {
-      "command": "context0",
+      "command": "/Users/your-username/.local/bin/context0",
       "args": ["mcp-server"]
     }
   }
 }</code></pre>
             <button class="copy-btn" data-copy-target="codex-config">Copy</button>
           </div>
-          <p class="hint">File: <code>~/.codex/config.json</code></p>
+          <p class="hint">File: <code>~/.codex/config.json</code> &nbsp;&middot;&nbsp; Use the full path from <code>which context0</code>.</p>
         </div>
       </section>
 
