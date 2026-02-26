@@ -145,6 +145,8 @@ fn cli_branch_override_uses_commit_from_that_branch() {
         String::from_utf8_lossy(&commit_main.stderr)
     );
 
+    let default_branch = git_stdout(&repo, &["branch", "--show-current"]);
+
     let create_feature = git(&repo, &["checkout", "-b", "feature/x"]);
     assert!(
         create_feature.status.success(),
@@ -179,10 +181,11 @@ fn cli_branch_override_uses_commit_from_that_branch() {
 
     let feature_sha = git_stdout(&repo, &["rev-parse", "HEAD"]);
 
-    let checkout_main = git(&repo, &["checkout", "main"]);
+    let checkout_main = git(&repo, &["checkout", &default_branch]);
     assert!(
         checkout_main.status.success(),
-        "git checkout main failed: {}",
+        "git checkout {} failed: {}",
+        default_branch,
         String::from_utf8_lossy(&checkout_main.stderr)
     );
 

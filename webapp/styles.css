@@ -554,6 +554,18 @@ p code {
 
   .grid article {
     box-shadow: 2px 2px 0 rgba(29, 44, 97, 0.4);
+    min-width: 0;
+  }
+
+  .grid article .code-wrap {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
+  #storage pre,
+  #storage code {
+    white-space: pre-wrap;
+    word-break: break-all;
   }
 }
 
