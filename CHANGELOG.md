@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-02-26
+
+- Fix SQLite busy timeout — use `conn.busy_timeout()` with 30s default, configurable via `CONTEXT0_BUSY_TIMEOUT_MS`
+- Fix `--repo` override not controlling commit SHA detection — commit now resolved via `git -C <repo>` when `--repo` is provided
+- Fix `--files` docs showing invalid space-separated syntax — correct form is repeated flags (`--files a --files b`)
+- Landing page: add Windows install instructions, Codex MCP tab, shell completions, `--repo`/`--branch` overrides, split quickstart into MCP and CLI-only paths
+
 ## [0.1.2] - 2026-02-25
 
 - Fix `--db` help text to show correct default path (`~/.context0/context0.db`)
